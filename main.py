@@ -91,20 +91,30 @@ def _menu_options():
     print('[R] - Sharpie Ratio')
 
 
+def _submenu_options():
+    print('\n')
+    print('[E] - Exit, Or select another option to calculate')
+
+
 if __name__ == '__main__':
     _portfolio_data()
     _menu_options()
 
-    command = input()
-    command = command.upper()
+    command = 'A'
+    while True:
+        command = input()
+        command = command.upper()
 
-    if command == 'P':
-        portfolio_beta = PortfolioService.calculate_portfolio_beta(stocks)
-        print('\n')
-        print('Portfolio Beta: {0}'.format(portfolio_beta))
-    elif command == 'S':
-        print('Standard Deviation')
-    elif command == 'R':
-        print('Sharpie Ratio')
-    else:
-        print('Invalid command')
+        if command == 'P':
+            portfolio_beta = PortfolioService.calculate_portfolio_beta(stocks)
+            print('\n')
+            print('Portfolio Beta: {0}'.format(portfolio_beta))
+        elif command == 'S':
+            print('Standard Deviation')
+        elif command == 'R':
+            print('Sharpie Ratio')
+        elif command == 'E':
+            break
+        else:
+            print('Invalid command')
+        _submenu_options()
