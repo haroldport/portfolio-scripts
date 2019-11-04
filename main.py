@@ -99,7 +99,7 @@ def _menu_options():
     print('*' * 50)
     print('Enter option to calculate')
     print('[B] - Beta Portfolio')
-    print('[S] - Standard Deviation and Sharpie Ratio')
+    print('[S] - Standard Deviation and Sharpe Ratio')
     print('[E] - Exit')
 
 
@@ -118,11 +118,12 @@ if __name__ == '__main__':
         elif command == 'S':
             _create_portfolio_with_number_of_actions()
             deviation_tuple = PortfolioService.calculate_annual_standard_deviation(stocks)
+            sharpe_ratio = PortfolioService.calculate_sharpe_ratio(deviation_tuple)
             print('\n')
             print('Standard deviation: {0}%'.format(round(deviation_tuple[0], 2)))
             print('Annualized Standard deviation: {0}%'.format(round(deviation_tuple[1], 2)))
-        elif command == 'R':
-            print('Sharpie Ratio')
+            print('\n')
+            print('Sharpe ratio: {0}%'.format(sharpe_ratio))
         elif command == 'E':
             break
         else:

@@ -7,6 +7,7 @@ import numpy as np
 from Stock import Stock
 
 NUM_EXCHANGE_DAYS = 252
+RISK_FREE_RATE_10YR_US = 1.71
 
 
 class PortfolioService:
@@ -28,7 +29,7 @@ class PortfolioService:
     @staticmethod
     def _get_historical_price_data(ticker, start_date, end_date):
         s = YahooFinancials(ticker)
-        historical_data = s.get_historical_price_data(str(start_date), str(end_date), "daily")
+        historical_data = s.get_historical_price_data("2018-11-05", end_date, "daily")
         return historical_data[ticker.upper()]['prices']
 
     @staticmethod
@@ -53,10 +54,11 @@ class PortfolioService:
         return merge_prices
 
     @staticmethod
-    def _calculate_daily_return(merge_prices, stocks_weight):
+    def _calculate_daily_return(merge_prices, stocks_weight, stock_list):
         portfolio_daily_return = list()
         first_key = list(merge_prices.keys())[0]
         prev_price = merge_prices[first_key]
+        daily_return_by_ticker = dict()
         for price_key in merge_prices:
             current_price = merge_prices[price_key]
             if first_key == price_key:
@@ -66,12 +68,17 @@ class PortfolioService:
                 for j in range(len(prev_price)):
                     if i == j:
                         stock_daily_return = ((current_price[i]/prev_price[j]) - 1) * 100
+                        if stock_list[j].ticker in daily_return_by_ticker:
+                            daily_return_by_ticker.update({stock_list[j].ticker: daily_return_by_ticker[stock_list[j]
+                                                          .ticker] + stock_daily_return})
+                        else:
+                            daily_return_by_ticker[stock_list[j].ticker] = stock_daily_return
                         total_daily_return += stock_daily_return * stocks_weight[j]
             portfolio_daily_return.append(total_daily_return/100)
             prev_price = current_price
         deviation = np.std(portfolio_daily_return)
         annualized_deviation = deviation * sqrt(NUM_EXCHANGE_DAYS)
-        return deviation, annualized_deviation
+        return deviation, annualized_deviation, daily_return_by_ticker, len(merge_prices), stocks_weight
 
     @staticmethod
     def calculate_annual_standard_deviation(portfolio_data):
@@ -85,12 +92,25 @@ class PortfolioService:
             weight = ((stock.number_of_actions * stock.price) * 100) / total_portfolio
             print('{0}: {1}'.format(stock.ticker.upper(), round(weight, 2)))
             stocks_weight.append(round(weight, 2))
-            prices_by_ticker = PortfolioService._get_historical_price_data(stock.ticker, time_period['start_date'],
-                                                                           time_period['end_date'])
+            prices_by_ticker = PortfolioService._get_historical_price_data(stock.ticker, str(time_period['start_date']),
+                                                                           str(time_period['end_date']))
             ticker_prices[stock.ticker] = list(map(lambda x: {x['formatted_date']: round(x['close'], 2)},
                                                    prices_by_ticker))
         merge_prices = PortfolioService._merge_prices(ticker_prices)
-        return PortfolioService._calculate_daily_return(merge_prices, stocks_weight)
+        return PortfolioService._calculate_daily_return(merge_prices, stocks_weight, portfolio_data)
+
+    @staticmethod
+    def calculate_sharpe_ratio(deviation_tuple):
+        i = 0
+        portfolio_expected_return = 0
+        for key in deviation_tuple[2]:
+            avg = (deviation_tuple[2][key] / deviation_tuple[3]) / 100
+            expected_return_by_ticker = (pow((1 + avg), NUM_EXCHANGE_DAYS) - 1) * 100
+            portfolio_expected_return += expected_return_by_ticker * deviation_tuple[4][i]
+            i += 1
+        portfolio_expected_return = round(portfolio_expected_return / 100, 2)
+        sharpe_ratio = ((portfolio_expected_return - RISK_FREE_RATE_10YR_US) / deviation_tuple[1]) * 100
+        return round(sharpe_ratio, 2)
 
     @staticmethod
     def create_stock(ticker, percentage, number_of_actions, beta, price):
