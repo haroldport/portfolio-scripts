@@ -29,7 +29,7 @@ class PortfolioService:
     @staticmethod
     def _get_historical_price_data(ticker, start_date, end_date):
         s = YahooFinancials(ticker)
-        historical_data = s.get_historical_price_data("2018-11-05", end_date, "daily")
+        historical_data = s.get_historical_price_data(start_date, end_date, "daily")
         return historical_data[ticker.upper()]['prices']
 
     @staticmethod
@@ -109,6 +109,7 @@ class PortfolioService:
             portfolio_expected_return += expected_return_by_ticker * deviation_tuple[4][i]
             i += 1
         portfolio_expected_return = round(portfolio_expected_return / 100, 2)
+        print('Portfolio expected return: {0}%'.format(portfolio_expected_return))
         sharpe_ratio = ((portfolio_expected_return - RISK_FREE_RATE_10YR_US) / deviation_tuple[1]) * 100
         return round(sharpe_ratio, 2)
 
