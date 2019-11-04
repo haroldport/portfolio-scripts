@@ -6,6 +6,8 @@ import numpy as np
 
 from Stock import Stock
 
+NUM_EXCHANGE_DAYS = 252
+
 
 class PortfolioService:
     """Service to management Portfolio"""
@@ -68,7 +70,7 @@ class PortfolioService:
             portfolio_daily_return.append(total_daily_return/100)
             prev_price = current_price
         deviation = np.std(portfolio_daily_return)
-        annualized_deviation = deviation * sqrt(252)
+        annualized_deviation = deviation * sqrt(NUM_EXCHANGE_DAYS)
         return deviation, annualized_deviation
 
     @staticmethod
