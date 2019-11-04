@@ -1,8 +1,10 @@
 class Stock:
-    def __init__(self, ticker, percentage, beta=0):
+    def __init__(self, ticker, percentage=0, number_of_actions=0, beta=0, price=0):
         self.ticker = ticker
         self.percentage = percentage
+        self.number_of_actions = number_of_actions
         self.beta = beta
+        self.price = price
 
     @property
     def ticker(self):
@@ -21,6 +23,14 @@ class Stock:
         self._percentage = percentage
 
     @property
+    def number_of_actions(self):
+        return self._number_of_actions
+
+    @number_of_actions.setter
+    def number_of_actions(self, number_of_actions):
+        self._number_of_actions = number_of_actions
+
+    @property
     def beta(self):
         return self._beta
 
@@ -28,8 +38,17 @@ class Stock:
     def beta(self, beta):
         self._beta = beta
 
+    @property
+    def price(self):
+        return self._price
+
+    @price.setter
+    def price(self, price):
+        self._price = price
+
     def __str__(self):
-        return 'Stock: ticker={0}, percentage={1}, beta={2}'.format(self.ticker.upper(), self.percentage, self.beta)
+        return 'Stock: ticker={0}, beta={1}, close price={2}'\
+            .format(self.ticker.upper(), self.beta, self.price)
 
     def __repr__(self):
         return 'Stock({0}, {1}, {2})'.format(self.ticker.upper(), self.percentage, self.beta)

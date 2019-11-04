@@ -1,40 +1,9 @@
-from os import system, name
-
 from PortfolioService import *
+from Utilities import *
 
 
 stocks = list()
-stock_cache = list()
-
-
-def clear():
-    if name == 'nt':
-        _ = system('cls')
-
-    else:
-        _ = system('clear')
-
-
-def _create_ticker():
-    while True:
-        ticker = input('Enter ticker: ')
-        stock_filtered = list(filter(lambda x: x.ticker == ticker, stocks))
-        if ticker.strip() and len(stock_filtered) == 0:
-            break
-        print('Empty or repeated value. Try again')
-    return ticker
-
-
-def create_percentage():
-    while True:
-        try:
-            percentage = int(input('Enter percentage: '))
-            if 0 <= percentage <= 100:
-                break
-            print('Try again')
-        except ValueError:
-            print('Try again')
-    return percentage
+stock_cache = dict()
 
 
 def _print_portfolio():
@@ -45,59 +14,96 @@ def _print_portfolio():
     print('\n')
 
 
-def _portfolio_data():
-    print('Portfolio Management')
-    print('*' * 50)
-    print('Please enter the portfolio data')
+def _get_or_add_financial_values_to_cache(ticker):
     try:
-        n = int(input('How many stocks do you want to enter? '))
-        total_iterations = n
-        i = 1
-        total_percentage = 0
-        while n > 0:
-            print('Values for Stock {0}'.format(i))
-            ticker = _create_ticker()
-            try:
-                beta = PortfolioService.calculate_beta_by_ticker(ticker.upper())
-                print('Found ticker {0} with beta: {1}'.format(ticker.upper(), beta))
-                while True:
-                    percentage = create_percentage()
-                    total_percentage += percentage
-                    if total_percentage > 100:
-                        total_percentage -= percentage
-                        print('Sum of percentages exceeded')
-                    elif i == total_iterations and total_percentage < 100:
-                        total_percentage -= percentage
-                        print('Sum of percentages must be 100%')
-                    else:
-                        stock = PortfolioService.create_stock(ticker, percentage, beta, stock_cache)
-                        stocks.append(stock)
-                        stock_cache.append(stock)
-                        n -= 1
-                        i += 1
-                        break
-            except TypeError:
-                print('Ticker does not exist')
-    except ValueError:
-        print('Please enter a number')
+        financial_in_cache = stock_cache[ticker]
+        if financial_in_cache:
+            print('Found ticker {0} in cache with beta: {1}'.format(ticker.upper(), financial_in_cache['beta']))
+            return financial_in_cache
+    except KeyError:
+        pass
+    try:
+        financial_values = PortfolioService.get_financial_values_by_ticker(ticker.upper())
+        stock_cache[ticker] = financial_values
+        print('Found ticker {0} in Yahoo Finance with beta: {1}'.format(ticker.upper(), financial_values['beta']))
+        return financial_values
+    except TypeError:
+        print('Ticker does not exist')
+        return None
 
+
+def _create_portfolio_with_number_of_actions():
+    print('Please enter the portfolio data')
+    while True:
+        try:
+            n = int(input('How many stocks do you want to enter? '))
+            i = 1
+            while n > 0:
+                print('Values for Stock {0}'.format(i))
+                ticker = Utilities.create_ticker(stocks)
+                financial_values = _get_or_add_financial_values_to_cache(ticker)
+                if financial_values:
+                    beta = financial_values['beta']
+                    number_of_actions = Utilities.create_number_of_actions()
+                    stock = PortfolioService.create_stock(ticker, 0, number_of_actions,
+                                                          beta, financial_values['current_price'])
+                    stocks.append(stock)
+                    n -= 1
+                    i += 1
+            break
+        except ValueError:
+            print('Please enter a number')
+    _print_portfolio()
+
+
+def _create_portfolio_with_percentage():
+    print('Please enter the portfolio data')
+    while True:
+        try:
+            n = int(input('How many stocks do you want to enter? '))
+            total_iterations = n
+            i = 1
+            total_percentage = 0
+            while n > 0:
+                print('Values for Stock {0}'.format(i))
+                ticker = Utilities.create_ticker(stocks)
+                financial_values = _get_or_add_financial_values_to_cache(ticker)
+                if financial_values:
+                    while True:
+                        percentage = Utilities.create_percentage()
+                        total_percentage += percentage
+                        if total_percentage > 100:
+                            total_percentage -= percentage
+                            print('Sum of percentages exceeded')
+                        elif i == total_iterations and total_percentage < 100:
+                            total_percentage -= percentage
+                            print('Sum of percentages must be 100%')
+                        else:
+                            stock = PortfolioService.create_stock(ticker, percentage, 0, financial_values['beta'],
+                                                                  financial_values['current_price'])
+                            stocks.append(stock)
+                            n -= 1
+                            i += 1
+                            break
+            break
+        except ValueError:
+            print('Please enter a number')
     _print_portfolio()
 
 
 def _menu_options():
-    print('Enter option to calculate')
-    print('[P] - Portfolio Beta')
-    print('[S] - Standard Deviation')
-    print('[R] - Sharpie Ratio')
-
-
-def _submenu_options():
+    stocks.clear()
     print('\n')
-    print('[E] - Exit, Or select another option to calculate')
+    print('*' * 50)
+    print('Portfolio Management')
+    print('*' * 50)
+    print('Enter option to calculate')
+    print('[B] - Beta Portfolio')
+    print('[S] - Standard Deviation and Sharpie Ratio')
+    print('[E] - Exit')
 
 
 if __name__ == '__main__':
-    _portfolio_data()
     _menu_options()
 
     command = 'A'
@@ -105,16 +111,20 @@ if __name__ == '__main__':
         command = input()
         command = command.upper()
 
-        if command == 'P':
+        if command == 'B':
+            _create_portfolio_with_percentage()
             portfolio_beta = PortfolioService.calculate_portfolio_beta(stocks)
-            print('\n')
-            print('Portfolio Beta: {0}'.format(portfolio_beta))
+            print('Beta Portfolio: {0}'.format(portfolio_beta))
         elif command == 'S':
-            print('Standard Deviation')
+            _create_portfolio_with_number_of_actions()
+            deviation_tuple = PortfolioService.calculate_annual_standard_deviation(stocks)
+            print('\n')
+            print('Standard deviation: {0}%'.format(round(deviation_tuple[0], 2)))
+            print('Annualized Standard deviation: {0}%'.format(round(deviation_tuple[1], 2)))
         elif command == 'R':
             print('Sharpie Ratio')
         elif command == 'E':
             break
         else:
             print('Invalid command')
-        _submenu_options()
+        _menu_options()
